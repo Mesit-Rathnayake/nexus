@@ -7,7 +7,7 @@ import (
 func TestNewBlock(t *testing.T) {
 	var previousHash [32]byte
 
-	block := NewBlock(1, previousHash)
+	block := NewBlock(1, previousHash, nil)
 
 	if block == nil {
 		t.Fatal("NewBlock() returned nil")
@@ -29,7 +29,7 @@ func TestNewBlock(t *testing.T) {
 func TestBlockHashChangesWhenHeaderChanges(t *testing.T) {
 	var previousHash [32]byte
 
-	block := NewBlock(1, previousHash)
+	block := NewBlock(1, previousHash, nil)
 
 	originalHash := block.Hash
 
@@ -45,7 +45,7 @@ func TestBlockHashChangesWhenHeaderChanges(t *testing.T) {
 func TestBlockHashIsDeterministic(t *testing.T) {
 	var previousHash [32]byte
 
-	block1 := NewBlock(1, previousHash)
+	block1 := NewBlock(1, previousHash, nil)
 	block2 := block1
 
 	hash1 := block1.CalculateHash()

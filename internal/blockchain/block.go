@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Mesit-Rathnayake/nexus/internal/crypto"
+	"github.com/Mesit-Rathnayake/nexus/internal/transaction"
 )
 
 type BlockHeader struct {
@@ -17,8 +18,9 @@ type BlockHeader struct {
 }
 
 type Block struct {
-	Header BlockHeader
-	Hash   [32]byte
+	Header       BlockHeader
+	Transactions []*transaction.Transaction
+	Hash         [32]byte
 }
 
 func (h BlockHeader) Bytes() []byte {
@@ -37,16 +39,29 @@ func (b *Block) CalculateHash() [32]byte {
 	return crypto.Hash(b.Header.Bytes())
 }
 
-func NewBlock(index uint64, previousHash [32]byte) *Block {
+func NewBlock(
+	index uint64,
+	previousHash [32]byte,
+	transactions []*transaction.Transaction,
+) *Block {
+
+	transactionHashes := make([][32]byte, 0, len(transactions))
+
+	for _, tx := range transactions {
+		transactionHashes = append(transactionHashes, tx.ID)
+	}
+
 	header := BlockHeader{
 		Index:        index,
 		Timestamp:    time.Now().Unix(),
 		PreviousHash: previousHash,
+		MerkleRoot:   MerkleRoot(transactionHashes),
 		Nonce:        0,
 	}
 
 	block := &Block{
-		Header: header,
+		Header:       header,
+		Transactions: transactions,
 	}
 
 	block.Hash = block.CalculateHash()
