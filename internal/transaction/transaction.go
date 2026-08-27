@@ -28,6 +28,10 @@ func (tx *Transaction) signingData() []byte {
 	return buffer.Bytes()
 }
 
+func (tx *Transaction) CalculateID() [32]byte {
+	return crypto.Hash(tx.signingData())
+}
+
 func (tx *Transaction) Sign(
 	keyPair *crypto.KeyPair,
 ) error {
@@ -40,7 +44,7 @@ func (tx *Transaction) Sign(
 	}
 
 	tx.Signature = signature
-	tx.ID = crypto.Hash(tx.signingData())
+	tx.ID = tx.CalculateID()
 
 	return nil
 }
