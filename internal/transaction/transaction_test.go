@@ -7,9 +7,9 @@ import (
 )
 
 func TestTransactionSigning(t *testing.T) {
-	keyPair, err := crypto.GenerateKeyPair()
+	wallet, err := crypto.NewWallet()
 	if err != nil {
-		t.Fatalf("GenerateKeyPair() failed: %v", err)
+		t.Fatalf("NewWallet() failed: %v", err)
 	}
 
 	tx := &Transaction{
@@ -19,7 +19,7 @@ func TestTransactionSigning(t *testing.T) {
 		Nonce:  0,
 	}
 
-	if err := tx.Sign(keyPair); err != nil {
+	if err := tx.Sign(wallet); err != nil {
 		t.Fatalf("Sign() failed: %v", err)
 	}
 
@@ -32,7 +32,7 @@ func TestTransactionSigning(t *testing.T) {
 	}
 
 	if !crypto.Verify(
-		&keyPair.PublicKey,
+		&wallet.KeyPair.PublicKey,
 		tx.signingData(),
 		tx.Signature,
 	) {

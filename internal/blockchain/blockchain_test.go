@@ -17,9 +17,9 @@ func createTestTransaction(
 
 	t.Helper()
 
-	keyPair, err := crypto.GenerateKeyPair()
+	wallet, err := crypto.NewWallet()
 	if err != nil {
-		t.Fatalf("GenerateKeyPair() failed: %v", err)
+		t.Fatalf("NewWallet() failed: %v", err)
 	}
 
 	tx := &transaction.Transaction{
@@ -29,7 +29,7 @@ func createTestTransaction(
 		Nonce:  nonce,
 	}
 
-	if err := tx.Sign(keyPair); err != nil {
+	if err := tx.Sign(wallet); err != nil {
 		t.Fatalf("transaction signing failed: %v", err)
 	}
 
