@@ -3,7 +3,10 @@ package node
 import "testing"
 
 func TestNewNode(t *testing.T) {
-	node := NewNode("node-1")
+	node := NewNode(
+		"node-1",
+		"127.0.0.1:8001",
+	)
 
 	if node == nil {
 		t.Fatal("NewNode() returned nil")
@@ -13,6 +16,13 @@ func TestNewNode(t *testing.T) {
 		t.Fatalf(
 			"node ID = %s, want node-1",
 			node.ID,
+		)
+	}
+
+	if node.Address != "127.0.0.1:8001" {
+		t.Fatalf(
+			"node address = %s, want 127.0.0.1:8001",
+			node.Address,
 		)
 	}
 
