@@ -21,7 +21,10 @@ func TestServerPingPong(t *testing.T) {
 		}
 
 		server := &Server{
-			Address: listener.Addr().String(),
+			Address:     listener.Addr().String(),
+			NodeID:      "test-node",
+			NodeAddress: listener.Addr().String(),
+			Peers:       NewPeerManager(),
 		}
 
 		server.handleConnection(conn)

@@ -10,6 +10,7 @@ type MessageType string
 const (
 	MessageTypePing           MessageType = "PING"
 	MessageTypePong           MessageType = "PONG"
+	MessageTypeHello          MessageType = "HELLO"
 	MessageTypeNewTransaction MessageType = "NEW_TRANSACTION"
 	MessageTypeNewBlock       MessageType = "NEW_BLOCK"
 	MessageTypeGetChain       MessageType = "GET_CHAIN"

@@ -3,10 +3,7 @@ package node
 import "testing"
 
 func TestNewNode(t *testing.T) {
-	node := NewNode(
-		"node-1",
-		"127.0.0.1:8001",
-	)
+	node := NewNode("node-1", "127.0.0.1:8001")
 
 	if node == nil {
 		t.Fatal("NewNode() returned nil")
@@ -34,6 +31,10 @@ func TestNewNode(t *testing.T) {
 		t.Fatal("node mempool is nil")
 	}
 
+	if node.Peers == nil {
+		t.Fatal("node peers manager is nil")
+	}
+
 	if len(node.Blockchain.Blocks) != 1 {
 		t.Fatalf(
 			"blockchain contains %d blocks, want 1",
@@ -45,6 +46,17 @@ func TestNewNode(t *testing.T) {
 		t.Fatalf(
 			"mempool size = %d, want 0",
 			node.Mempool.Size(),
+		)
+	}
+
+	if node.Peers == nil {
+		t.Fatal("expected peer manager to be initialized")
+	}
+
+	if node.Peers.Count() != 0 {
+		t.Fatalf(
+			"expected empty peer manager, got %d peers",
+			node.Peers.Count(),
 		)
 	}
 }
