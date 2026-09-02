@@ -12,14 +12,18 @@ type Node struct {
 	Blockchain *blockchain.Blockchain
 	Mempool    *transaction.Pool
 	Peers      *network.PeerManager
+	Network    *network.Network
 }
 
 func NewNode(id string, address string) *Node {
+	peers := network.NewPeerManager()
+
 	return &Node{
 		ID:         id,
 		Address:    address,
 		Blockchain: blockchain.NewBlockchain(),
 		Mempool:    transaction.NewPool(),
-		Peers:      network.NewPeerManager(),
+		Peers:      peers,
+		Network:    network.NewNetwork(id, address, peers),
 	}
 }

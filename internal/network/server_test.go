@@ -38,6 +38,24 @@ func TestServerPingPong(t *testing.T) {
 	defer peer.Close()
 
 	if err := peer.Send(
+		MessageTypeHello,
+		HelloPayload{
+			NodeID:  "test-client",
+			Address: "127.0.0.1:0",
+		},
+	); err != nil {
+		t.Fatalf("failed to send HELLO: %v", err)
+	}
+
+	_ = peer.Conn.SetReadDeadline(
+		time.Now().Add(2 * time.Second),
+	)
+
+	if _, err := peer.Receive(); err != nil {
+		t.Fatalf("failed to receive HELLO response: %v", err)
+	}
+
+	if err := peer.Send(
 		MessageTypePing,
 		map[string]string{
 			"message": "hello nexus",
@@ -46,7 +64,6 @@ func TestServerPingPong(t *testing.T) {
 		t.Fatalf("failed to send PING: %v", err)
 	}
 
-	// Give the server a moment to respond.
 	_ = peer.Conn.SetReadDeadline(
 		time.Now().Add(2 * time.Second),
 	)

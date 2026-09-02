@@ -22,6 +22,12 @@ func main() {
 		"unique ID for the Nexus node",
 	)
 
+	peerAddress := flag.String(
+		"peer",
+		"",
+		"address of a peer to connect to",
+	)
+
 	flag.Parse()
 
 	address := "127.0.0.1:" + strconv.Itoa(*port)
@@ -59,7 +65,20 @@ func main() {
 		*nodeID,
 	)
 
-	if err := server.Start(); err != nil {
-		log.Fatalf("Network server stopped: %v", err)
+	go func() {
+		if err := server.Start(); err != nil {
+			log.Fatalf("Network server stopped: %v", err)
+		}
+	}()
+
+	if *peerAddress != "" {
+		if err := n.Network.Connect(*peerAddress); err != nil {
+			log.Fatalf(
+				"Failed to connect to peer: %v",
+				err,
+			)
+		}
 	}
+
+	select {}
 }

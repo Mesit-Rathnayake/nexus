@@ -69,6 +69,33 @@ func (pm *PeerManager) Remove(id string) {
 	delete(pm.peers, id)
 }
 
+func (pm *PeerManager) Replace(id string, peer *Peer) error {
+	if pm == nil {
+		return fmt.Errorf("peer manager is nil")
+	}
+
+	if peer == nil {
+		return fmt.Errorf("peer is nil")
+	}
+
+	if id == "" {
+		return fmt.Errorf("peer ID is empty")
+	}
+
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+
+	if existing, exists := pm.peers[id]; exists {
+		if existing != nil && existing.Conn != nil && existing.Conn != peer.Conn {
+			_ = existing.Close()
+		}
+	}
+
+	pm.peers[id] = peer
+
+	return nil
+}
+
 func (pm *PeerManager) Count() int {
 	if pm == nil {
 		return 0

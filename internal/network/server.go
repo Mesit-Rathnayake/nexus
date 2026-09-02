@@ -1,6 +1,7 @@
 package network
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -48,35 +49,67 @@ func (s *Server) Start() error {
 }
 
 func (s *Server) handleConnection(conn net.Conn) {
-	defer conn.Close()
+	log.Printf(
+		"Peer connected: %s",
+		conn.RemoteAddr(),
+	)
 
-	log.Printf("Peer connected: %s", conn.RemoteAddr())
+	reader := bufio.NewReader(conn)
 
-	message, err := Receive(conn)
+	message, err := Receive(reader)
 	if err != nil {
-		log.Printf("failed to receive message: %v", err)
+		log.Printf(
+			"failed to receive initial message: %v",
+			err,
+		)
+
+		_ = conn.Close()
+		return
+	}
+
+	if message.Type != MessageTypeHello {
+		log.Printf(
+			"expected HELLO, got %s",
+			message.Type,
+		)
+
+		_ = conn.Close()
+		return
+	}
+
+	peerID, err := s.handleHello(conn, message)
+	if err != nil {
+		log.Printf(
+			"handshake failed: %v",
+			err,
+		)
+
+		_ = conn.Close()
+		return
+	}
+
+	peer := &Peer{
+		Address: conn.RemoteAddr().String(),
+		Conn:    conn,
+		Reader:  reader,
+	}
+
+	if err := s.Peers.Replace(peerID, peer); err != nil {
+		log.Printf(
+			"failed to register persistent peer: %v",
+			err,
+		)
+
+		_ = conn.Close()
 		return
 	}
 
 	log.Printf(
-		"Received message: %s",
-		message.Type,
+		"Starting message loop for peer %s",
+		peerID,
 	)
 
-	switch message.Type {
-
-	case MessageTypeHello:
-		s.handleHello(conn, message)
-
-	case MessageTypePing:
-		s.handlePing(conn)
-
-	default:
-		log.Printf(
-			"Unsupported message type: %s",
-			message.Type,
-		)
-	}
+	s.messageLoop(peer)
 }
 
 func (s *Server) handlePing(conn net.Conn) {
@@ -102,22 +135,29 @@ func (s *Server) handlePing(conn net.Conn) {
 func (s *Server) handleHello(
 	conn net.Conn,
 	message *Message,
-) {
+) (string, error) {
 	var hello HelloPayload
 
-	if err := json.Unmarshal(message.Payload, &hello); err != nil {
-		log.Printf("failed to decode HELLO payload: %v", err)
-		return
+	if err := json.Unmarshal(
+		message.Payload,
+		&hello,
+	); err != nil {
+		return "", fmt.Errorf(
+			"failed to decode HELLO payload: %w",
+			err,
+		)
 	}
 
 	if hello.NodeID == "" {
-		log.Printf("HELLO contains empty node ID")
-		return
+		return "", fmt.Errorf(
+			"HELLO contains empty node ID",
+		)
 	}
 
 	if hello.Address == "" {
-		log.Printf("HELLO contains empty node address")
-		return
+		return "", fmt.Errorf(
+			"HELLO contains empty node address",
+		)
 	}
 
 	log.Printf(
@@ -125,20 +165,6 @@ func (s *Server) handleHello(
 		hello.NodeID,
 		hello.Address,
 	)
-
-	peer := &Peer{
-		Address: hello.Address,
-		Conn:    conn,
-	}
-
-	if err := s.Peers.Add(hello.NodeID, peer); err != nil {
-		log.Printf(
-			"failed to register peer %s: %v",
-			hello.NodeID,
-			err,
-		)
-		return
-	}
 
 	response := HelloPayload{
 		NodeID:  s.NodeID,
@@ -150,19 +176,74 @@ func (s *Server) handleHello(
 		MessageTypeHello,
 		response,
 	); err != nil {
-		log.Printf(
-			"failed to send HELLO response: %v",
+		return "", fmt.Errorf(
+			"failed to send HELLO response: %w",
 			err,
 		)
-
-		s.Peers.Remove(hello.NodeID)
-		return
 	}
 
 	log.Printf(
 		"Handshake completed with node %s",
 		hello.NodeID,
 	)
+
+	return hello.NodeID, nil
+}
+
+func (s *Server) messageLoop(peer *Peer) {
+	for {
+		message, err := peer.Receive()
+		if err != nil {
+			log.Printf(
+				"connection to %s closed: %v",
+				peer.Address,
+				err,
+			)
+
+			return
+		}
+
+		log.Printf(
+			"Received %s from %s",
+			message.Type,
+			peer.Address,
+		)
+
+		s.handleMessage(peer, message)
+	}
+}
+
+func (s *Server) handleMessage(
+	peer *Peer,
+	message *Message,
+) {
+	switch message.Type {
+
+	case MessageTypePing:
+		if err := peer.Send(
+			MessageTypePong,
+			map[string]string{
+				"message": "hello from Nexus",
+			},
+		); err != nil {
+			log.Printf(
+				"failed to send PONG: %v",
+				err,
+			)
+		}
+
+	case MessageTypeHello:
+		log.Printf(
+			"unexpected HELLO from %s",
+			peer.Address,
+		)
+
+	default:
+		log.Printf(
+			"Unhandled message type: %s",
+			message.Type,
+		)
+	}
 }
 
 func sendMessage(

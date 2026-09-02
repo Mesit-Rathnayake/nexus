@@ -5,11 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"sync"
 )
 
 type Peer struct {
 	Address string
 	Conn    net.Conn
+	Reader  *bufio.Reader
+	mu      sync.Mutex
 }
 
 func NewPeer(address string) (*Peer, error) {
@@ -21,6 +24,7 @@ func NewPeer(address string) (*Peer, error) {
 	return &Peer{
 		Address: address,
 		Conn:    conn,
+		Reader:  bufio.NewReader(conn),
 	}, nil
 }
 
@@ -36,6 +40,9 @@ func (p *Peer) Send(messageType MessageType, payload any) error {
 
 	data = append(data, '\n')
 
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	_, err = p.Conn.Write(data)
 
 	if err != nil {
@@ -45,8 +52,10 @@ func (p *Peer) Send(messageType MessageType, payload any) error {
 	return nil
 }
 
-func Receive(conn net.Conn) (*Message, error) {
-	reader := bufio.NewReader(conn)
+func Receive(reader *bufio.Reader) (*Message, error) {
+	if reader == nil {
+		return nil, fmt.Errorf("reader is nil")
+	}
 
 	data, err := reader.ReadBytes('\n')
 	if err != nil {
@@ -79,5 +88,9 @@ func (p *Peer) Receive() (*Message, error) {
 		return nil, fmt.Errorf("peer connection is not available")
 	}
 
-	return Receive(p.Conn)
+	if p.Reader == nil {
+		p.Reader = bufio.NewReader(p.Conn)
+	}
+
+	return Receive(p.Reader)
 }

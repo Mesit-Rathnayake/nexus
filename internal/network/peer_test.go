@@ -1,6 +1,7 @@
 package network
 
 import (
+	"bufio"
 	"net"
 	"testing"
 )
@@ -14,12 +15,13 @@ func TestPeerSendReceive(t *testing.T) {
 	peer := &Peer{
 		Address: "pipe",
 		Conn:    client,
+		Reader:  bufio.NewReader(client),
 	}
 
 	done := make(chan error)
 
 	go func() {
-		message, err := Receive(server)
+		message, err := Receive(bufio.NewReader(server))
 
 		if err != nil {
 			done <- err
